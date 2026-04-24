@@ -1,0 +1,13 @@
+node_modules/
+.env
+**/.env
+node_modules/
+logs
+*.log
+.DS_Store
+dist/
+build/
+coverage/
+.vscode/
+*.csv
+data/
