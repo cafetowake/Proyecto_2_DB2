@@ -1,0 +1,13 @@
+{
+  "watch": ["src"],
+  "ext": "js,json",
+  "ignore": ["src/**/*.spec.js", "src/**/*.test.js"],
+  "delay": "1000",
+  "verbose": true,
+  "execMap": {
+    "js": "node"
+  },
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
