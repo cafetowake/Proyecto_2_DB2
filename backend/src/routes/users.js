@@ -1,39 +1,40 @@
 // User routes - /api/users
 import express from 'express';
+import * as usersController from '../controllers/usersController.js';
 
 const router = express.Router();
 
+// POST /verified - Create verified user (2 labels) - MUST come before /:id
+router.post('/verified', usersController.createVerifiedUser);
+
+// GET /stats/aggregate - Count/avg aggregation - MUST come before /:id
+router.get('/stats/aggregate', usersController.getUserStats);
+
 // POST / - Create user (1 label)
-
-
-// POST /verified - Create verified user (2 labels)
-
+router.post('/', usersController.createUser);
 
 // GET /:id - Get single user
-
+router.get('/:id', usersController.getUserById);
 
 // GET / - Get many users (query filters)
+router.get('/', usersController.getUsers);
 
+// PATCH /bulk - Update props on many users - MUST come before /:id
+router.patch('/bulk', usersController.bulkUpdateUsers);
 
-// GET /stats/aggregate - Count/avg aggregation
+// PATCH /:id - Update user properties
+router.patch('/:id', usersController.updateUserProps);
 
+// DELETE /bulk/props - Remove props from many users - MUST come before /:id
+router.delete('/bulk/props', usersController.bulkRemoveUserProps);
 
-// PATCH /:id/props - Add/update properties
-
-
-// PATCH /bulk/props - Update props on many users
-
+// DELETE /bulk - Delete multiple users - MUST come before /:id
+router.delete('/bulk', usersController.bulkDeleteUsers);
 
 // DELETE /:id/props - Remove properties from user
-
-
-// DELETE /bulk/props - Remove props from many users
-
+router.delete('/:id/props', usersController.removeUserProps);
 
 // DELETE /:id - Delete single user
-
-
-// DELETE /bulk - Delete multiple users
-
+router.delete('/:id', usersController.deleteUser);
 
 export default router;
