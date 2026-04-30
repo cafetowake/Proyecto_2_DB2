@@ -16,9 +16,10 @@ const driver = neo4j.driver(
   NEO4J_URI,
   neo4j.auth.basic(NEO4J_USERNAME, NEO4J_PASSWORD),
   {
-    maxConnectionLifetime: 3 * 60 * 60 * 1000, // 3 hours
+    maxConnectionLifetime: 30 * 60 * 1000,       // 30 min (AuraDB cierra idle ~1h)
     maxConnectionPoolSize: 50,
-    connectionAcquisitionTimeout: 2 * 60 * 1000 // 2 minutes
+    connectionAcquisitionTimeout: 2 * 60 * 1000,  // 2 min
+    connectionLivenessCheckTimeout: 30 * 1000,     // chequea cada 30s si la conexión sigue viva
   }
 );
 

@@ -9,6 +9,7 @@ import { toNativeTypes, extractNode, isEmpty } from '../utils/neo4jHelpers.js';
 export async function createGroup(data) {
   const session = getSession();
   try {
+    // Create group
     const result = await session.run(
       `CREATE (g:Group {
         id: $id,
@@ -32,7 +33,20 @@ export async function createGroup(data) {
       throw new Error('Failed to create group');
     }
 
-    return extractNode(result.records[0], 'g');
+    const group = extractNode(result.records[0], 'g');
+
+    // Create FOCUSES_ON relationships if topicIds provided
+    if (data.topicIds && data.topicIds.length > 0) {
+      await session.run(
+        `MATCH (g:Group {id: $groupId})
+         UNWIND $topicIds AS topicId
+         MATCH (t:Topic {id: topicId})
+         MERGE (g)-[:FOCUSES_ON]->(t)`,
+        { groupId: data.id, topicIds: data.topicIds }
+      );
+    }
+
+    return group;
   } finally {
     await session.close();
   }
@@ -109,8 +123,8 @@ export async function getGroups(filters = {}) {
               count(DISTINCT u) AS membersCount,
               count(DISTINCT p) AS postsCount
        ORDER BY g.membersCount DESC, g.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       params
     );
 
@@ -118,6 +132,28 @@ export async function getGroups(filters = {}) {
       ...extractNode(record, 'g'),
       membersCount: record.get('membersCount').toNumber(),
       postsCount: record.get('postsCount').toNumber()
+    }));
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * READ groups a user belongs to
+ */
+export async function getUserGroups(userId) {
+  const session = getSession();
+  try {
+    const result = await session.run(
+      `MATCH (u:User {id: $userId})-[:MEMBER_OF]->(g:Group)
+       OPTIONAL MATCH (m:User)-[:MEMBER_OF]->(g)
+       RETURN g, COUNT(DISTINCT m) AS membersCount
+       ORDER BY g.name ASC`,
+      { userId }
+    );
+    return result.records.map(record => ({
+      ...extractNode(record, 'g'),
+      membersCount: record.get('membersCount').toNumber(),
     }));
   } finally {
     await session.close();
@@ -134,7 +170,7 @@ export async function getGroupMembers(groupId, limit = 50) {
       `MATCH (u:User)-[r:MEMBER_OF]->(g:Group {id: $groupId})
        RETURN u, r, labels(u) AS labels
        ORDER BY r.joinedAt DESC
-       LIMIT $limit`,
+       LIMIT toInteger($limit)`,
       { groupId, limit }
     );
 
@@ -162,8 +198,8 @@ export async function getGroupPosts(groupId, limit = 20, skip = 0) {
               author.username AS authorUsername,
               author.id AS authorId
        ORDER BY r.pinned DESC, p.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       { groupId, skip: neo4j.int(skip), limit: neo4j.int(limit) }
     );
 

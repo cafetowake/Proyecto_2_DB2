@@ -11,7 +11,8 @@ export async function createGroup(req, res, next) {
       description: req.body.description || '',
       isPrivate: req.body.isPrivate !== undefined ? req.body.isPrivate : false,
       membersCount: 0,
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split('T')[0],
+      topicIds: req.body.topicIds || []
     };
 
     const group = await groupService.createGroup(groupData);
@@ -48,6 +49,16 @@ export async function getGroups(req, res, next) {
     };
 
     const groups = await groupService.getGroups(filters);
+    res.json(groups);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /user/:userId - Get groups a user belongs to
+export async function getUserGroups(req, res, next) {
+  try {
+    const groups = await groupService.getUserGroups(req.params.userId);
     res.json(groups);
   } catch (error) {
     next(error);

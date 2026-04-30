@@ -7,6 +7,18 @@ const router = express.Router();
 // GET /stats/aggregate - MUST come before /:id
 router.get('/stats/aggregate', postsController.getPostStats);
 
+// GET /feed/:userId - Feed from followed users
+router.get('/feed/:userId', postsController.getFeed);
+
+// GET /following/:userId - Combined feed (followed users + joined groups)
+router.get('/following/:userId', postsController.getFollowingFeed);
+
+// GET /liked/:userId - Posts liked by user
+router.get('/liked/:userId', postsController.getLikedPosts);
+
+// GET /saved/:userId - Posts saved by user
+router.get('/saved/:userId', postsController.getSavedPosts);
+
 // POST / - Create post
 router.post('/', postsController.createPost);
 

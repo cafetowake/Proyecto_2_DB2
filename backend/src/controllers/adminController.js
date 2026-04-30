@@ -21,8 +21,8 @@ export async function seedDatabase(req, res, next) {
 // POST /csv - Upload CSV and load into Neo4j
 export async function uploadCSV(req, res, next) {
   try {
-    const type = req.query.type; // users, posts, groups, topics, hashtags, follows, likes, members
-    const file = req.file; // Assuming multer middleware is used
+    const type = req.body.type ?? req.query.type; // sent as FormData field or query param
+    const file = req.file; // set by multer middleware
     
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -65,6 +65,12 @@ export async function uploadCSV(req, res, next) {
         break;
       case 'members':
         result = await adminService.loadMembersFromCSV(records);
+        break;
+      case 'follows_hashtag':
+        result = await adminService.loadFollowsHashtagFromCSV(records);
+        break;
+      case 'tag_in_topic':
+        result = await adminService.loadTaggedWithFromCSV(records);
         break;
       default:
         return res.status(400).json({ error: 'Invalid CSV type' });

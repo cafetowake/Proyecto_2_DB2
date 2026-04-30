@@ -137,9 +137,9 @@ export async function getUserById(id) {
       `MATCH (u:User {id: $id})
        RETURN u,
               labels(u) AS labels,
-              [(u)-[:FOLLOWS]->(other) | other.id] AS following,
-              [(u)<-[:FOLLOWS]-(other) | other.id] AS followers,
-              size((u)-[:CREATED]->(:Post)) AS postCount`,
+              COUNT { (u)-[:FOLLOWS]->() } AS followingCount,
+              COUNT { (u)<-[:FOLLOWS]-() } AS followersCount,
+              COUNT { (u)-[:CREATED]->(:Post) } AS postCount`,
       { id }
     );
 
@@ -151,8 +151,8 @@ export async function getUserById(id) {
     return {
       ...extractNode(record, 'u'),
       labels: record.get('labels'),
-      followingCount: record.get('following').length,
-      followersCount: record.get('followers').length,
+      followingCount: record.get('followingCount').toNumber(),
+      followersCount: record.get('followersCount').toNumber(),
       postCount: record.get('postCount').toNumber()
     };
   } finally {
@@ -218,8 +218,8 @@ export async function getUsers(filters = {}) {
               COUNT { (u)<-[:FOLLOWS]-() } AS followersCount,
               COUNT { (u)-[:CREATED]->(:Post) } AS postCount
        ORDER BY u.joinedAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       params
     );
 

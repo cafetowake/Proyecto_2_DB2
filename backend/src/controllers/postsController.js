@@ -63,6 +63,55 @@ export async function getPosts(req, res, next) {
   }
 }
 
+// GET /feed/:userId - Feed from followed users only
+export async function getFeed(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = parseInt(req.query.skip)  || 0;
+    const posts = await postService.getFeedForUser(req.params.userId, limit, skip);
+    res.json(posts);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /liked/:userId - Posts liked by user
+export async function getLikedPosts(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = parseInt(req.query.skip)  || 0;
+    const posts = await postService.getLikedPostsByUser(req.params.userId, limit, skip);
+    res.json(posts);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /saved/:userId - Posts saved by user
+export async function getSavedPosts(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = parseInt(req.query.skip)  || 0;
+    const collectionName = req.query.collectionName || null;
+    const posts = await postService.getSavedPostsByUser(req.params.userId, collectionName, limit, skip);
+    res.json(posts);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /following/:userId - Combined feed (followed users + joined groups)
+export async function getFollowingFeed(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = parseInt(req.query.skip)  || 0;
+    const posts = await postService.getFollowingFeed(req.params.userId, limit, skip);
+    res.json(posts);
+  } catch (error) {
+    next(error);
+  }
+}
+
 // GET /stats/aggregate - Aggregation
 export async function getPostStats(req, res, next) {
   try {

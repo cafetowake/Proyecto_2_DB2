@@ -10,6 +10,9 @@ router.get('/replies/:id', commentsController.getCommentReplies);
 // POST / - Create comment
 router.post('/', commentsController.createComment);
 
+// GET /post/:postId - Get comments for a post - MUST come before /:id
+router.get('/post/:postId', commentsController.getCommentsByPost);
+
 // GET /:id - Get single comment
 router.get('/:id', commentsController.getCommentById);
 

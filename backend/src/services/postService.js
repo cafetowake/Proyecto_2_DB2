@@ -249,8 +249,8 @@ export async function getPosts(filters = {}) {
              g.name AS groupName,
              p.likesCount AS likesCount
       ORDER BY p.createdAt DESC
-      SKIP $skip
-      LIMIT $limit
+      SKIP toInteger($skip)
+      LIMIT toInteger($limit)
     `;
 
     const result = await session.run(query, params);
@@ -310,22 +310,33 @@ export async function getPostStats() {
 /**
  * Get posts liked by a user
  */
-export async function getLikedPostsByUser(userId, limit = 20) {
+export async function getLikedPostsByUser(userId, limit = 20, skip = 0) {
   const session = getSession();
   try {
     const result = await session.run(
       `MATCH (u:User {id: $userId})-[r:LIKES]->(p:Post)
        OPTIONAL MATCH (author:User)-[:CREATED]->(p)
-       RETURN p, r, author.username AS authorUsername
+       OPTIONAL MATCH (p)-[:POSTED_IN]->(g:Group)
+       RETURN p, r,
+              author.id AS authorId,
+              author.username AS authorUsername,
+              author.badge AS authorBadge,
+              g.name AS groupName
        ORDER BY r.likedAt DESC
-       LIMIT $limit`,
-      { userId, limit }
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
+      { userId, limit: neo4j.int(limit), skip: neo4j.int(skip) }
     );
 
     return result.records.map(record => ({
       ...extractNode(record, 'p'),
-      likedAt: toNativeTypes(record.get('r').properties).likedAt,
-      authorUsername: record.get('authorUsername')
+      likedByMe: true,
+      author: {
+        id: record.get('authorId'),
+        username: record.get('authorUsername'),
+        badge: record.get('authorBadge'),
+      },
+      group: record.get('groupName') ? { name: record.get('groupName') } : null,
     }));
   } finally {
     await session.close();
@@ -335,11 +346,11 @@ export async function getLikedPostsByUser(userId, limit = 20) {
 /**
  * Get saved posts by a user
  */
-export async function getSavedPostsByUser(userId, collectionName = null, limit = 20) {
+export async function getSavedPostsByUser(userId, collectionName = null, limit = 20, skip = 0) {
   const session = getSession();
   try {
     let whereClause = '';
-    const params = { userId, limit: neo4j.int(limit) };
+    const params = { userId, limit: neo4j.int(limit), skip: neo4j.int(skip) };
 
     if (collectionName) {
       whereClause = 'AND r.collectionName = $collectionName';
@@ -350,17 +361,27 @@ export async function getSavedPostsByUser(userId, collectionName = null, limit =
       `MATCH (u:User {id: $userId})-[r:SAVED]->(p:Post)
        WHERE 1=1 ${whereClause}
        OPTIONAL MATCH (author:User)-[:CREATED]->(p)
-       RETURN p, r, author.username AS authorUsername
+       OPTIONAL MATCH (p)-[:POSTED_IN]->(g:Group)
+       RETURN p, r,
+              author.id AS authorId,
+              author.username AS authorUsername,
+              author.badge AS authorBadge,
+              g.name AS groupName
        ORDER BY r.savedAt DESC
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       params
     );
 
     return result.records.map(record => ({
       ...extractNode(record, 'p'),
-      savedAt: toNativeTypes(record.get('r').properties).savedAt,
-      collectionName: toNativeTypes(record.get('r').properties).collectionName,
-      authorUsername: record.get('authorUsername')
+      savedByMe: true,
+      author: {
+        id: record.get('authorId'),
+        username: record.get('authorUsername'),
+        badge: record.get('authorBadge'),
+      },
+      group: record.get('groupName') ? { name: record.get('groupName') } : null,
     }));
   } finally {
     await session.close();
@@ -504,8 +525,8 @@ export async function getFeedForUser(userId, limit = 20, skip = 0) {
               g.name AS groupName,
               p.likesCount AS likesCount
        ORDER BY p.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       { userId, limit, skip }
     );
 
@@ -517,6 +538,63 @@ export async function getFeedForUser(userId, limit = 20, skip = 0) {
       },
       groupName: record.get('groupName'),
       likesCount: record.get('likesCount') ? record.get('likesCount').toNumber() : 0
+    }));
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * READ posts from followed users AND joined groups (combined "Siguiendo" feed)
+ * Deduplicates posts that match both conditions
+ */
+export async function getFollowingFeed(userId, limit = 20, skip = 0) {
+  const session = getSession();
+  try {
+    const result = await session.run(
+      `MATCH (u:User {id: $userId})
+       CALL {
+         WITH u
+         MATCH (u)-[:FOLLOWS]->(author:User)-[:CREATED]->(p:Post)
+         WHERE p.isDraft = false
+         OPTIONAL MATCH (p)-[:POSTED_IN]->(g:Group)
+         WITH u, p, author, g
+         WHERE g IS NULL
+            OR g.isPrivate = false
+            OR EXISTS { MATCH (u)-[:MEMBER_OF]->(g) }
+         RETURN p, author, g
+         UNION
+         WITH u
+         MATCH (u)-[:FOLLOWS_HASHTAG]->(:Hashtag)<-[:USES]-(p:Post)
+         WHERE p.isDraft = false
+         MATCH (author:User)-[:CREATED]->(p)
+         OPTIONAL MATCH (p)-[:POSTED_IN]->(g:Group)
+         WITH u, p, author, g
+         WHERE g IS NULL
+            OR g.isPrivate = false
+            OR EXISTS { MATCH (u)-[:MEMBER_OF]->(g) }
+         RETURN p, author, g
+       }
+       WITH DISTINCT p, author, g
+       ORDER BY p.createdAt DESC
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)
+       RETURN p,
+              author.id AS authorId,
+              author.username AS authorUsername,
+              author.badge AS authorBadge,
+              g.name AS groupName`,
+      { userId, limit, skip }
+    );
+
+    return result.records.map(record => ({
+      ...extractNode(record, 'p'),
+      author: {
+        id: record.get('authorId'),
+        username: record.get('authorUsername'),
+        badge: record.get('authorBadge'),
+      },
+      groupName: record.get('groupName'),
     }));
   } finally {
     await session.close();

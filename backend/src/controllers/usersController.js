@@ -12,7 +12,7 @@ export async function createUser(req, res, next) {
       biography: req.body.biography || '',
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
       interests: req.body.interests || [],
-      birthdate: req.body.birthdate,
+      birthdate: req.body.birthdate || new Date().toISOString().split('T')[0],
       joinedAt: new Date().toISOString().split('T')[0]
     };
 
@@ -33,7 +33,7 @@ export async function createVerifiedUser(req, res, next) {
       biography: req.body.biography || '',
       isActive: req.body.isActive !== undefined ? req.body.isActive : true,
       interests: req.body.interests || [],
-      birthdate: req.body.birthdate,
+      birthdate: req.body.birthdate || new Date().toISOString().split('T')[0],
       joinedAt: new Date().toISOString().split('T')[0],
       verifiedAt: new Date().toISOString().split('T')[0],
       badge: req.body.badge || 'creator'
@@ -159,6 +159,23 @@ export async function deleteUser(req, res, next) {
     }
 
     res.json({ message: 'User deleted successfully', ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// PATCH /:id/verify - Add VerifiedUser label + badge to existing user
+export async function verifyUser(req, res, next) {
+  try {
+    const { badge } = req.body;
+    if (!badge) return res.status(400).json({ error: 'badge is required' });
+    const user = await userService.verifyUser(
+      req.params.id,
+      new Date().toISOString().split('T')[0],
+      badge
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
   } catch (error) {
     next(error);
   }

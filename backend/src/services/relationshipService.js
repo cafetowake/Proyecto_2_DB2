@@ -567,7 +567,7 @@ export async function getFollowing(userId, limit = 20) {
       `MATCH (u:User {id: $userId})-[r:FOLLOWS]->(other:User)
        RETURN other, r, labels(other) AS labels
        ORDER BY r.interactionScore DESC, r.since DESC
-       LIMIT $limit`,
+       LIMIT toInteger($limit)`,
       { userId, limit }
     );
 
@@ -591,7 +591,7 @@ export async function getFollowers(userId, limit = 20) {
       `MATCH (other:User)-[r:FOLLOWS]->(u:User {id: $userId})
        RETURN other, r, labels(other) AS labels
        ORDER BY r.interactionScore DESC, r.since DESC
-       LIMIT $limit`,
+       LIMIT toInteger($limit)`,
       { userId, limit }
     );
 
@@ -600,6 +600,67 @@ export async function getFollowers(userId, limit = 20) {
       relationship: toNativeTypes(record.get('r').properties),
       labels: record.get('labels')
     }));
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * Remove INTERESTED_IN relationship (user unfollows a topic)
+ */
+export async function removeInterestInTopic(userId, topicId) {
+  const session = getSession();
+  try {
+    const result = await session.run(
+      `MATCH (u:User {id: $userId})-[r:INTERESTED_IN]->(t:Topic {id: $topicId})
+       DELETE r
+       RETURN count(r) AS deleted`,
+      { userId, topicId }
+    );
+
+    return {
+      deleted: result.records[0].get('deleted').toNumber()
+    };
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * GET hashtags that a user follows
+ */
+export async function getFollowedHashtags(userId) {
+  const session = getSession();
+  try {
+    const result = await session.run(
+      `MATCH (u:User {id: $userId})-[r:FOLLOWS_HASHTAG]->(h:Hashtag)
+       RETURN h, r`,
+      { userId }
+    );
+    return result.records.map(record => ({
+      ...toNativeTypes(record.get('h').properties),
+    }));
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * Unfollow hashtag (delete FOLLOWS_HASHTAG relationship)
+ */
+export async function unfollowHashtag(userId, hashtagId) {
+  const session = getSession();
+  try {
+    const result = await session.run(
+      `MATCH (u:User {id: $userId})-[r:FOLLOWS_HASHTAG]->(h:Hashtag {id: $hashtagId})
+       DELETE r
+       RETURN count(r) AS deleted`,
+      { userId, hashtagId }
+    );
+
+    return {
+      deleted: result.records[0].get('deleted').toNumber()
+    };
   } finally {
     await session.close();
   }

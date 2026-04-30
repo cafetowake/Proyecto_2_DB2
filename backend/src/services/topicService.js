@@ -110,8 +110,8 @@ export async function getTopics(filters = {}) {
               count(DISTINCT u) AS followersCount,
               count(DISTINCT p) AS postsCount
        ORDER BY t.popularityScore DESC, t.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       params
     );
 
@@ -139,8 +139,8 @@ export async function getTopicPosts(topicId, limit = 20, skip = 0) {
               author.username AS authorUsername,
               author.id AS authorId
        ORDER BY r.relevanceScore DESC, p.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       { topicId, skip: neo4j.int(skip), limit: neo4j.int(limit) }
     );
 
@@ -167,7 +167,7 @@ export async function getTopicFollowers(topicId, limit = 50) {
       `MATCH (u:User)-[r:INTERESTED_IN]->(t:Topic {id: $topicId})
        RETURN u, r, labels(u) AS labels
        ORDER BY r.level DESC, r.since DESC
-       LIMIT $limit`,
+       LIMIT toInteger($limit)`,
       { topicId, limit }
     );
 

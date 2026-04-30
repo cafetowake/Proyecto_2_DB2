@@ -127,8 +127,8 @@ export async function getHashtags(filters = {}) {
               count(DISTINCT p) AS postsCount,
               count(DISTINCT u) AS followersCount
        ORDER BY h.usageCount DESC, h.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       params
     );
 
@@ -154,8 +154,8 @@ export async function getTrendingHashtags(limit = 10) {
        OPTIONAL MATCH (p:Post)-[:USES]->(h)
        RETURN h, count(p) AS postsCount
        ORDER BY h.usageCount DESC
-       LIMIT $limit`,
-      { limit }
+       LIMIT toInteger($limit)`,
+      { limit: neo4j.int(limit) }
     );
 
     return result.records.map(record => ({
@@ -181,8 +181,8 @@ export async function getHashtagPosts(hashtagId, limit = 20, skip = 0) {
               author.username AS authorUsername,
               author.id AS authorId
        ORDER BY r.addedAt DESC, p.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       { hashtagId, skip: neo4j.int(skip), limit: neo4j.int(limit) }
     );
 

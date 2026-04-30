@@ -22,6 +22,9 @@ router.get('/', usersController.getUsers);
 // PATCH /bulk - Update props on many users - MUST come before /:id
 router.patch('/bulk', usersController.bulkUpdateUsers);
 
+// PATCH /:id/verify - Add VerifiedUser label - MUST come before /:id plain patch
+router.patch('/:id/verify', usersController.verifyUser);
+
 // PATCH /:id - Update user properties
 router.patch('/:id', usersController.updateUserProps);
 

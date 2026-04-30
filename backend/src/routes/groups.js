@@ -4,6 +4,9 @@ import * as groupsController from '../controllers/groupsController.js';
 
 const router = express.Router();
 
+// GET /user/:userId - Get groups for a user - MUST come before /:id
+router.get('/user/:userId', groupsController.getUserGroups);
+
 // GET /:id/members - Get group members - MUST come before /:id
 router.get('/:id/members', groupsController.getGroupMembers);
 

@@ -48,6 +48,7 @@ export async function createComment(data) {
         CREATE (c)-[:ON {createdAt: date($createdAt), isMainComment: false, relevanceScore: 1.0}]->(post)
         CREATE (c)-[:REPLY_TO {createdAt: date($createdAt), notified: true, depth: 1}]->(parent)
         SET parent.repliesCount = coalesce(parent.repliesCount, 0) + 1
+        SET post.commentsCount = coalesce(post.commentsCount, 0) + 1
         RETURN c, author.username AS authorUsername
       `;
       params.parentCommentId = parentCommentId;
@@ -66,6 +67,7 @@ export async function createComment(data) {
         })
         CREATE (author)-[:WROTE {createdAt: date($createdAt), device: $device}]->(c)
         CREATE (c)-[:ON {createdAt: date($createdAt), isMainComment: true, relevanceScore: 1.0}]->(post)
+        SET post.commentsCount = coalesce(post.commentsCount, 0) + 1
         RETURN c, author.username AS authorUsername
       `;
       params.postId = postId;
@@ -79,8 +81,13 @@ export async function createComment(data) {
 
     const record = result.records[0];
     return {
-      comment: extractNode(record, 'c'),
-      authorUsername: record.get('authorUsername')
+      ...extractNode(record, 'c'),
+      author: {
+        id: params.authorId,
+        username: record.get('authorUsername'),
+      },
+      postId: params.postId ?? null,
+      repliesCount: 0,
     };
   } finally {
     await session.close();
@@ -146,8 +153,8 @@ export async function getCommentsByPost(postId, filters = {}) {
               author.id AS authorId,
               COUNT { (c)<-[:REPLY_TO]-() } AS repliesCount
        ORDER BY c.createdAt DESC
-       SKIP $skip
-       LIMIT $limit`,
+       SKIP toInteger($skip)
+       LIMIT toInteger($limit)`,
       { postId, skip: neo4j.int(skip), limit: neo4j.int(limit) }
     );
 
@@ -178,7 +185,7 @@ export async function getCommentReplies(commentId, limit = 10) {
               author.id AS authorId,
               COUNT { (reply)<-[:REPLY_TO]-() } AS repliesCount
        ORDER BY reply.createdAt ASC
-       LIMIT $limit`,
+       LIMIT toInteger($limit)`,
       { commentId, limit: neo4j.int(limit) }
     );
 

@@ -16,6 +16,21 @@ router.post('/save', relationshipsController.savePost);
 // POST /member - Create MEMBER_OF relationship
 router.post('/member', relationshipsController.joinGroup);
 
+// POST /interest - Create INTERESTED_IN relationship
+router.post('/interest', relationshipsController.addInterest);
+
+// POST /follow-hashtag - Create FOLLOWS_HASHTAG relationship
+router.post('/follow-hashtag', relationshipsController.followHashtag);
+
+// DELETE /interest/:userId/:topicId - Remove INTERESTED_IN
+router.delete('/interest/:userId/:topicId', relationshipsController.removeInterest);
+
+// GET /followed-hashtags/:userId - Hashtags a user follows
+router.get('/followed-hashtags/:userId', relationshipsController.getFollowedHashtags);
+
+// DELETE /follow-hashtag/:userId/:hashtagId - Unfollow hashtag
+router.delete('/follow-hashtag/:userId/:hashtagId', relationshipsController.unfollowHashtag);
+
 // PATCH /follow/bulk - Update many FOLLOWS props - MUST come before /:from/:to
 router.patch('/follow/bulk', relationshipsController.bulkUpdateFollows);
 
@@ -36,6 +51,15 @@ router.delete('/follow/:from/:to/prop', relationshipsController.removeFollowProp
 
 // DELETE /follow/:from/:to - Unfollow (delete relationship)
 router.delete('/follow/:from/:to', relationshipsController.unfollowUser);
+
+// GET /following/:userId - Get users that userId follows
+router.get('/following/:userId', relationshipsController.getFollowing);
+
+// GET /followers/:userId - Get followers of userId
+router.get('/followers/:userId', relationshipsController.getFollowers);
+
+// DELETE /member/:userId/:groupId - Leave group
+router.delete('/member/:userId/:groupId', relationshipsController.leaveGroup);
 
 export default router;
 

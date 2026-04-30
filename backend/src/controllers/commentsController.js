@@ -39,10 +39,10 @@ export async function getCommentById(req, res, next) {
   }
 }
 
-// GET / - Get comments by post
+// GET / or /post/:postId - Get comments by post
 export async function getCommentsByPost(req, res, next) {
   try {
-    const postId = req.query.postId;
+    const postId = req.params.postId || req.query.postId;
     const filters = {
       mainOnly: req.query.mainOnly === 'true',
       limit: parseInt(req.query.limit) || 20,
@@ -50,7 +50,7 @@ export async function getCommentsByPost(req, res, next) {
     };
 
     const comments = await commentService.getCommentsByPost(postId, filters);
-    res.json(comments);
+    res.json({ data: comments });
   } catch (error) {
     next(error);
   }

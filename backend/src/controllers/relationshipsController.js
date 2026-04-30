@@ -165,3 +165,107 @@ export async function bulkUnfollow(req, res, next) {
     next(error);
   }
 }
+
+// POST /interest - Create INTERESTED_IN relationship
+export async function addInterest(req, res, next) {
+  try {
+    const { userId, topicId } = req.body;
+    const props = {
+      level: req.body.level || 3,
+      isPrimary: req.body.isPrimary || false
+    };
+    const relationship = await relationshipService.addInterestInTopic(userId, topicId, props);
+    res.status(201).json(relationship);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// DELETE /interest/:userId/:topicId - Remove INTERESTED_IN
+export async function removeInterest(req, res, next) {
+  try {
+    const { userId, topicId } = req.params;
+    const result = await relationshipService.removeInterestInTopic(userId, topicId);
+    if (result.deleted === 0) {
+      return res.status(404).json({ error: 'Interest not found' });
+    }
+    res.json({ message: 'Interest removed successfully', ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// POST /follow-hashtag - Create FOLLOWS_HASHTAG relationship
+export async function followHashtag(req, res, next) {
+  try {
+    const { userId, hashtagId } = req.body;
+    const props = {
+      notificationsEnabled: req.body.notificationsEnabled || false,
+      interestLevel: req.body.interestLevel || 3
+    };
+    const relationship = await relationshipService.followHashtag(userId, hashtagId, props);
+    res.status(201).json(relationship);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /followed-hashtags/:userId - Get hashtags a user follows
+export async function getFollowedHashtags(req, res, next) {
+  try {
+    const hashtags = await relationshipService.getFollowedHashtags(req.params.userId);
+    res.json({ data: hashtags });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// DELETE /follow-hashtag/:userId/:hashtagId - Unfollow hashtag
+export async function unfollowHashtag(req, res, next) {
+  try {
+    const { userId, hashtagId } = req.params;
+    const result = await relationshipService.unfollowHashtag(userId, hashtagId);
+    if (result.deleted === 0) {
+      return res.status(404).json({ error: 'Hashtag follow not found' });
+    }
+    res.json({ message: 'Hashtag unfollowed successfully', ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /following/:userId - Get users that userId follows
+export async function getFollowing(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const records = await relationshipService.getFollowing(req.params.userId, limit);
+    // Flatten to plain user objects so frontend can use u.id directly
+    const users = records.map(r => ({ ...r.user }));
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /followers/:userId - Get followers of userId
+export async function getFollowers(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const records = await relationshipService.getFollowers(req.params.userId, limit);
+    const users = records.map(r => ({ ...r.user }));
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// DELETE /member/:userId/:groupId - Leave a group
+export async function leaveGroup(req, res, next) {
+  try {
+    const { userId, groupId } = req.params;
+    const result = await relationshipService.leaveGroup(userId, groupId);
+    res.json({ message: 'Left group successfully', ...result });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -20,6 +20,28 @@ export async function createHashtag(req, res, next) {
   }
 }
 
+// GET /trending - Get trending hashtags
+export async function getTrendingHashtags(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const hashtags = await hashtagService.getTrendingHashtags(limit);
+    res.json(hashtags);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /tag/:tag - Get hashtag by text
+export async function getHashtagByText(req, res, next) {
+  try {
+    const hashtag = await hashtagService.getHashtagByText(req.params.tag);
+    if (!hashtag) return res.status(404).json({ error: 'Hashtag not found' });
+    res.json(hashtag);
+  } catch (error) {
+    next(error);
+  }
+}
+
 // GET /:id - Get single hashtag
 export async function getHashtagById(req, res, next) {
   try {
